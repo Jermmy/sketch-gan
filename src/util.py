@@ -44,12 +44,12 @@ class DataGenerator():
         self.batch_size = batch_size
 
         self.train_dataset = tf.data.Dataset.from_tensor_slices((train_files))
-        # self.train_dataset = self.train_dataset.map(self._parse_data)
-        self.train_dataset = self.train_dataset.map(
-            lambda file: tuple(tf.py_func(
-                self._parse_data, [file], [tf.float32, tf.float32]
-            ))
-        )
+        self.train_dataset = self.train_dataset.map(self._parse_data)
+        # self.train_dataset = self.train_dataset.map(
+        #     lambda file: tuple(tf.py_func(
+        #         self._parse_data, [file], [tf.float32, tf.float32]
+        #     ))
+        # )
         self.train_dataset = self.train_dataset.batch(batch_size).repeat(epoch)
 
 
@@ -65,29 +65,40 @@ class DataGenerator():
 
         return train_files
 
-    # def _parse_data(self, filename):
-    #     image_string = tf.read_file(filename=filename)
-    #     image_decode = tf.image.decode_image(image_string)
-    #     image_decode = tf.cast(image_decode, tf.float32)
-    #     image_decode = tf.subtract(image_decode, 255.0 / 2)
-    #     image_decode = image_decode / 255.0
-    #
-    #     noise_input = tf.random_uniform(shape=[self.noise_dim,],
-    #                                     minval=-1.0, maxval=1.0, dtype=tf.float32)
-    #
-    #     return image_decode, noise_input
+    def _get_one_train_file(self):
+        train_files = []
+        dirs = [join(sketch_data_dir, d) for d in os.listdir(sketch_data_dir)
+                if isdir(join(sketch_data_dir, d))]
+        # for d in dirs:
+        d = dirs[0]
+        files = [join(d, f) for f in os.listdir(d) if f.endswith(".png")]
+        train_files.extend(files)
+
+        train_files = shuffle(train_files)
+        return train_files
 
     def _parse_data(self, filename):
-        image = cv2.imread(filename.decode(), cv2.IMREAD_UNCHANGED)
-        image = image.reshape(image_size, image_size, 1).astype(np.float32)
-        image = (image - 255.0 / 2) / 255.0
-
-        # noise_input = tf.random_uniform(shape=[self.noise_dim,],
-        #                                 minval=-1.0, maxval=1.0, dtype=tf.float32)
+        image_string = tf.read_file(filename=filename)
+        image_decode = tf.image.decode_image(image_string)
+        image_decode = tf.cast(image_decode, tf.float32)
+        image_decode = tf.subtract(image_decode, 255.0 / 2)
+        image_decode = image_decode / 255.0
 
         noise_input = np.random.uniform(-1., 1., size=[self.noise_dim]).astype(np.float32)
 
-        return image, noise_input
+        return image_decode, noise_input
+
+    # def _parse_data(self, filename):
+    #     image = cv2.imread(filename.decode(), cv2.IMREAD_UNCHANGED)
+    #     image = image.reshape(image_size, image_size, 1).astype(np.float32)
+    #     image = (image - 255.0 / 2) / 255.0
+    #
+    #     # noise_input = tf.random_uniform(shape=[self.noise_dim,],
+    #     #                                 minval=-1.0, maxval=1.0, dtype=tf.float32)
+    #
+    #     noise_input = np.random.uniform(-1., 1., size=[self.noise_dim]).astype(np.float32)
+    #
+    #     return image, noise_input
 
 
 

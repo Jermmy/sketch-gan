@@ -21,6 +21,10 @@ sketch_data_dir = join(root_dir, "sketch/")
 if not exists(sketch_data_dir):
     os.mkdir(sketch_data_dir)
 
+gen_sample_dir = join(root_dir, "sample/")
+if not exists(gen_sample_dir):
+    os.mkdir(gen_sample_dir)
+
 image_size = 100
 image_channel = 1
 noise_dim = 1000

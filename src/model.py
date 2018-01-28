@@ -10,7 +10,10 @@ class SimpleGan():
     def train(self, gen_input, disc_input):
         return self._loss(gen_input, disc_input)
 
-    def _generator(self, x, reuse=False):
+    def gen_sample(self, x):
+        return self.generator(x)
+
+    def generator(self, x, reuse=False):
         x = tf.reshape(x, shape=[-1, noise_dim])
         with tf.variable_scope("generator") as scope:
             if reuse:
@@ -19,14 +22,19 @@ class SimpleGan():
             x = tf.nn.tanh(x)
             x = tf.reshape(x, shape=[-1, 9, 9, 64])
 
-            dc1 = tf.layers.conv2d_transpose(x, strides=[3, 3], kernel_size=[6, 6], filters=32, padding='valid')
-            dc2 = tf.layers.conv2d_transpose(dc1, strides=[3, 3], kernel_size=[13, 13], filters=1, padding='valid')
+            dc1 = tf.layers.conv2d_transpose(x, strides=[3, 3], kernel_size=[6, 6],
+                                             filters=32, padding='valid', name="dc1")
+            dc2 = tf.layers.conv2d_transpose(dc1, strides=[3, 3], kernel_size=[13, 13],
+                                             filters=1, padding='valid', name="dc2")
+
+            # dc2 = tf.Print(dc2, [dc2], message="generator")
+
             dc2 = tf.nn.sigmoid(dc2)
 
             return dc2
 
 
-    def _discriminator(self, x, reuse=False):
+    def discriminator(self, x, reuse=False):
         x = tf.reshape(x, shape=[-1, image_size, image_size, image_channel])
         with tf.variable_scope("discriminator") as scope:
             if reuse:
@@ -47,15 +55,18 @@ class SimpleGan():
 
             c3 = tf.reshape(c3, [-1, shape[1] * shape[2] * shape[3]])
             fc = tf.layers.dense(c3, 64, name='fc')
+
+            # fc = tf.Print(fc, [fc], message="discriminator")
+
             fc = tf.nn.sigmoid(fc)
             return fc
 
 
     def _loss(self, gen_input, disc_input):
-        gen_sample = self._generator(gen_input)
+        gen_sample = self.generator(gen_input)
 
-        disc_fake = self._discriminator(gen_sample)
-        disc_real = self._discriminator(disc_input, reuse=True)
+        disc_fake = self.discriminator(gen_sample)
+        disc_real = self.discriminator(disc_input, reuse=True)
 
         gen_loss = -tf.reduce_mean(tf.log(disc_fake))
         disc_loss = -tf.reduce_mean(tf.log(disc_real) + tf.log(1. - disc_fake))
